@@ -1,0 +1,17 @@
+services:
+  postgresql:
+    container_name: krieger_postgresql
+    image: postgres
+    environment:
+      POSTGRES_USER: krieger
+      POSTGRES_PASSWORD: krieger
+      POSTGRES_DB: document_and_author_db
+      PGDATA: /data/postgres
+    volumes:
+      - postgres:/data/postgres
+    ports:
+      - "5434:5432"
+    restart: unless-stopped
+
+volumes:
+  postgres:
