@@ -1,8 +1,10 @@
 package com.krieger.advice;
 
 import com.krieger.author.exception.AuthorNotFoundException;
+import com.krieger.author.exception.AuthorRequestException;
 import com.krieger.document.exception.DocumentNotFoundException;
 import com.krieger.document.exception.DocumentReferenceException;
+import com.krieger.document.exception.DocumentRequestException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -74,11 +76,12 @@ public class ApplicationGenericExceptionAdvice {
     }
 
     /**
-     * To handle all generic exceptions and send proper error message.
+     * To handle AuthorRequestException, DocumentRequestException and other exceptions to send appropriate error messages.
+     *
      * @param exception thrown from application.
      * @return response entity with custom generic error response class.
      */
-    @ExceptionHandler(Exception.class)
+    @ExceptionHandler({Exception.class, AuthorRequestException.class, DocumentRequestException.class})
     public ResponseEntity<GenericErrorMessage> handleAllExceptions(Exception exception) {
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)

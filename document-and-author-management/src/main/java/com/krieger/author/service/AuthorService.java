@@ -17,6 +17,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+import static java.lang.String.format;
+
 /**
  * To delegate all incoming requests to repository layer or mapper, in order to process it.
  */
@@ -54,7 +56,7 @@ public class AuthorService {
         repository.findById(authorId).orElseThrow(
                 // if there is no author found, we need to send exception message to user/client.
                 () -> new AuthorNotFoundException(
-                        String.format("No author found with specified ID : %s to update.", authorId)
+                        format("No author found with specified ID : %s to update.", authorId)
                 )
         );
         // convert model object to entity.
@@ -142,7 +144,7 @@ public class AuthorService {
                 .orElseThrow(
                         // if there is no author found, we need to send exception message to user/client.
                         () -> new AuthorNotFoundException(
-                                String.format("No author found with specified ID : %s fetch.", authorId)
+                                format("No author found with specified ID : %s fetch.", authorId)
                         )
                 );
     }
@@ -156,7 +158,7 @@ public class AuthorService {
         repository.findById(authorId).orElseThrow(
                 // if there is no author found, we need to send exception message to user/client.
                 () -> new AuthorNotFoundException(
-                        String.format("No author found with specified ID : %s to delete.", authorId)
+                        format("No author found with specified ID : %s to delete.", authorId)
                 )
         );
         repository.deleteById(authorId);

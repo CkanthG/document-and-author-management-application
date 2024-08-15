@@ -6,6 +6,7 @@ import com.krieger.author.models.AuthorResponse;
 import com.krieger.document.entity.Document;
 import com.krieger.document.exception.DocumentNotFoundException;
 import com.krieger.document.exception.DocumentReferenceException;
+import com.krieger.document.exception.DocumentRequestException;
 import com.krieger.document.models.DocumentRequest;
 import com.krieger.document.models.DocumentResponse;
 import java.util.Objects;
@@ -29,6 +30,9 @@ public class DocumentMapper {
      * @throws DocumentReferenceException If the document references itself.
      */
     public Document toDocumentEntity(DocumentRequest request, Long documentId) {
+        if (request == null) {
+            throw new DocumentRequestException("DocumentRequest should not be null");
+        }
         return Document.builder()
                 .title(request.title())
                 .body(request.body())
@@ -54,7 +58,7 @@ public class DocumentMapper {
      * @return An Author entity with the given ID.
      * @throws AuthorNotFoundException If the author ID is 0.
      */
-    private Author mapToAuthorEntity(Long authorId) {
+    public Author mapToAuthorEntity(Long authorId) {
         if (authorId == 0) {
             throw new AuthorNotFoundException("No author found with ID : 0.");
         }
@@ -70,7 +74,7 @@ public class DocumentMapper {
      * @throws DocumentNotFoundException If the reference ID is 0.
      * @throws DocumentReferenceException If the document references itself.
      */
-    private Document mapToReferenceEntity(Long referenceId, Long documentId) {
+    public Document mapToReferenceEntity(Long referenceId, Long documentId) {
         if (referenceId == 0) {
             throw new DocumentNotFoundException("No document found with ID : 0.");
         }

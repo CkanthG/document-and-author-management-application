@@ -1,6 +1,7 @@
 package com.krieger.author.mapper;
 
 import com.krieger.author.entity.Author;
+import com.krieger.author.exception.AuthorRequestException;
 import com.krieger.author.models.AuthorRequest;
 import com.krieger.author.models.AuthorResponse;
 import com.krieger.document.entity.Document;
@@ -22,6 +23,9 @@ public class AuthorMapper {
      * @return newly created Author entity object.
      */
     public Author toAuthorEntity(AuthorRequest request) {
+        if (request == null) {
+            throw new AuthorRequestException("AuthorRequest object should not be null.");
+        }
         return Author.builder()
                 .firstName(request.firstName())
                 .lastName(request.lastName())

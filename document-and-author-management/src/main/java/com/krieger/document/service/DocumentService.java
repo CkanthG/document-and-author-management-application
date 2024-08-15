@@ -112,6 +112,11 @@ public class DocumentService {
      * @return Updated document response.
      */
     public DocumentResponse updateDocument(DocumentRequest request, Long documentId) {
+        repository.findById(documentId).orElseThrow(
+                () -> new DocumentNotFoundException(
+                        format("No document found with specified ID : %s to update.", documentId)
+                )
+        );
         var documentEntity = mapper.toDocumentEntity(request, documentId);
         documentEntity.setId(documentId);
         return mapper.toDocumentResponseModel(
