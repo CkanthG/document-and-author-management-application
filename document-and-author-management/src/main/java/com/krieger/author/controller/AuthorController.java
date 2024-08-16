@@ -97,4 +97,15 @@ public class AuthorController {
         service.deleteAuthorById(authorId);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
+
+    /**
+     * Send an author to kafka by ID.
+     *
+     * @param authorId - ID of the author to send.
+     * @return Retrieve sent message with HTTP OK status.
+     */
+    @GetMapping("/{author-id}/send")
+    public ResponseEntity<String> sendAuthorToKafka(@PathVariable("author-id") Long authorId) {
+        return ResponseEntity.ok(service.sendAuthorToKafka(authorId));
+    }
 }

@@ -8,6 +8,7 @@ import com.krieger.author.models.AllAuthorsResponse;
 import com.krieger.author.models.CustomSort;
 import com.krieger.author.models.CustomPageable;
 import com.krieger.author.repository.AuthorRepository;
+import com.krieger.kafka.KafkaProducer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -28,6 +29,7 @@ public class AuthorService {
 
     private final AuthorRepository repository;
     private final AuthorMapper mapper;
+    private final KafkaProducer kafkaProducer;
 
     /**
      * To save author information.
@@ -162,5 +164,24 @@ public class AuthorService {
                 )
         );
         repository.deleteById(authorId);
+    }
+
+    /**
+     * To send author information to kafka by ID.
+     *
+     * @param authorId - used to identify resource to send to kafka.
+     * @return success response or exception message to UI.
+     */
+    public String sendAuthorToKafka(Long authorId) {
+        var author = repository.findById(authorId)
+                .map(mapper::toAuthorResponseModel)
+                .orElseThrow(
+                // if there is no author found, we need to send exception message to user/client.
+                () -> new AuthorNotFoundException(
+                        format("No author found with specified ID : %s to send to kafka.", authorId)
+                )
+        );
+        kafkaProducer.sendAuthorInformation(author);
+        return format("Successfully Sent Author : %s Information to Kafka", authorId);
     }
 }

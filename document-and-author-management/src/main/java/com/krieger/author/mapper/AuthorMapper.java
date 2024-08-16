@@ -63,6 +63,20 @@ public class AuthorMapper {
                 .id(document.getId())
                 .title(document.getTitle())
                 .body(document.getBody())
+                .references(
+                        document.getReferences() != null ? document.getReferences()
+                                .stream()
+                                .map(this::mapToDocumentReferences)
+                                .collect(Collectors.toSet()) : null
+                )
+                .build();
+    }
+
+    private DocumentResponse mapToDocumentReferences(Document document) {
+        return DocumentResponse.builder()
+                .id(document.getId())
+                .title(document.getTitle())
+                .body(document.getBody())
                 .build();
     }
 }

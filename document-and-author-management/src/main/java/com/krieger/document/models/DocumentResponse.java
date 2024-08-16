@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.Builder;
+import lombok.ToString;
 
 import java.util.Set;
 
@@ -19,6 +20,7 @@ import java.util.Set;
 @Setter
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@ToString
 public class DocumentResponse {
     Long id;
     String title;

@@ -5,6 +5,7 @@ import com.krieger.author.models.AllAuthorsResponse;
 import com.krieger.author.models.AuthorRequest;
 import com.krieger.author.models.AuthorResponse;
 import com.krieger.author.repository.AuthorRepository;
+import com.krieger.kafka.KafkaProducer;
 import org.junit.AfterClass;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,6 +32,10 @@ class AuthorControllerIT extends TestContainerBaseClass {
 
     @Autowired
     private TestRestTemplate testRestTemplate;
+
+    @Autowired
+    KafkaProducer kafkaProducer;
+
     AuthorRequest authorRequest;
 
     @BeforeEach
@@ -162,6 +167,33 @@ class AuthorControllerIT extends TestContainerBaseClass {
                 HttpMethod.DELETE,
                 null,
                 Void.class
+        );
+        assertEquals(HttpStatus.NOT_FOUND, responseEntity.getStatusCode());
+    }
+
+    @Test
+    void test_send_author_to_kafka_should_return_success_status_code_with_valid_author_id() {
+        ResponseEntity<AuthorResponse> entity = testRestTemplate.postForEntity(authorUrl, authorRequest, AuthorResponse.class);
+        assert entity != null;
+        var author = entity.getBody();
+        assert author != null;
+        ResponseEntity<String> responseEntity = testRestTemplate.exchange(
+                authorUrl + "/" + author.getId() + "/send",
+                HttpMethod.GET,
+                null,
+                String.class
+        );
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertEquals("Successfully Sent Author : " + author.getId() + " Information to Kafka", responseEntity.getBody());
+    }
+
+    @Test
+    void test_send_author_to_kafka_should_throw_error_status_code_with_invalid_author_id() {
+        ResponseEntity<String> responseEntity = testRestTemplate.exchange(
+                authorUrl + "/1/send",
+                HttpMethod.GET,
+                null,
+                String.class
         );
         assertEquals(HttpStatus.NOT_FOUND, responseEntity.getStatusCode());
     }

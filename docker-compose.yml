@@ -1,7 +1,7 @@
 services:
   postgresql:
     container_name: krieger_postgresql
-    image: postgres
+    image: postgres:latest
     environment:
       POSTGRES_USER: krieger
       POSTGRES_PASSWORD: krieger
@@ -11,7 +11,44 @@ services:
       - postgres:/data/postgres
     ports:
       - "5434:5432"
+    networks:
+      - krieger-net
     restart: unless-stopped
+
+  zookeeper:
+    container_name: krieger_zookeeper
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "32181:2181"
+    networks:
+      - krieger-net
+    restart: unless-stopped
+
+  kafka:
+    container_name: krieger_kafka
+    image: confluentinc/cp-kafka:latest
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+    networks:
+      - krieger-net
+    restart: unless-stopped
+
+networks:
+  krieger-net:
+    driver: bridge
 
 volumes:
   postgres:

@@ -7,6 +7,7 @@ import com.krieger.author.models.AllAuthorsResponse;
 import com.krieger.author.models.AuthorRequest;
 import com.krieger.author.models.AuthorResponse;
 import com.krieger.author.repository.AuthorRepository;
+import com.krieger.kafka.KafkaProducer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -28,6 +29,8 @@ class AuthorServiceTest {
     private AuthorRepository repository;
     @Mock
     private AuthorMapper mapper;
+    @Mock
+    private KafkaProducer kafkaProducer;
 
     private AuthorResponse authorResponse;
     private AuthorRequest authorRequest;
@@ -217,6 +220,30 @@ class AuthorServiceTest {
         assertThrows(
                 AuthorNotFoundException.class,
                 () -> authorService.deleteAuthorById(authorId)
+        );
+    }
+
+    @Test
+    void test_send_author_to_kafka_should_should_successfully_send_the_author_information_to_kafka() {
+        // when
+        when(repository.findById(authorId)).thenReturn(Optional.of(author));
+        when(mapper.toAuthorResponseModel(author)).thenReturn(authorResponse);
+        // then
+        String actual = authorService.sendAuthorToKafka(authorId);
+        assertEquals("Successfully Sent Author : " + authorId + " Information to Kafka", actual);
+
+        //verify
+        verify(repository, times(1))
+                .findById(authorId);
+        verify(mapper, times(1))
+                .toAuthorResponseModel(author);
+    }
+
+    @Test
+    void test_send_author_to_kafka_should_throw_author_not_found_exception_when_invalid_author_id_passed() {
+        assertThrows(
+                AuthorNotFoundException.class,
+                () -> authorService.sendAuthorToKafka(authorId)
         );
     }
 }
