@@ -9,6 +9,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Column;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.FetchType;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.Builder;
@@ -43,7 +44,7 @@ public class Author {
     private String lastName;
 
     // many-to-many relationship with documents table.
-    @ManyToMany(mappedBy = "authors", cascade = CascadeType.REMOVE)
+    @ManyToMany(mappedBy = "authors", cascade = CascadeType.REMOVE, fetch = FetchType.EAGER)
     private Set<Document> documents = new HashSet<>();
 
 }

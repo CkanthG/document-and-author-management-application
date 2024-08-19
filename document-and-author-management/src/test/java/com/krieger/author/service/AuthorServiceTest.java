@@ -24,7 +24,7 @@ import static org.mockito.Mockito.*;
 class AuthorServiceTest {
 
     @InjectMocks
-    private AuthorService authorService;
+    private AuthorServiceImpl authorService;
     @Mock
     private AuthorRepository repository;
     @Mock
@@ -35,14 +35,14 @@ class AuthorServiceTest {
     private AuthorResponse authorResponse;
     private AuthorRequest authorRequest;
     private Author author;
-    private Long authorId = 1L;
-    private String firstName = "Sreekanth";
-    private String lastName = "Gaddoju";
-    private int pageNumber = 1;
-    private int pageSize = 10;
-    private int offSet = 0;
-    private String[] sort = {"id" , "asc"};
-    private Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(Sort.Direction.ASC, "id"));
+    private final Long authorId = 1L;
+    private final String firstName = "Sreekanth";
+    private final String lastName = "Gaddoju";
+    private final int pageNumber = 1;
+    private final int pageSize = 10;
+    private final int offSet = 0;
+    private final String[] sort = {"id" , "asc"};
+    private final Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(Sort.Direction.ASC, "id"));
 
     @BeforeEach
     void setUp() {
@@ -183,7 +183,7 @@ class AuthorServiceTest {
         when(mapper.toAuthorResponseModel(author)).thenReturn(authorResponse);
 
         // then
-        AuthorResponse actual = authorService.findAuthorById(authorId);
+        AuthorResponse actual = authorService.getAuthorById(authorId);
         assertEquals(authorRequest.firstName(), actual.getFirstName());
         assertEquals(authorRequest.lastName(), actual.getLastName());
 
@@ -198,7 +198,7 @@ class AuthorServiceTest {
     void test_find_author_by_id_should_throw_author_not_found_exception_when_invalid_author_id_passed() {
         assertThrows(
                 AuthorNotFoundException.class,
-                () -> authorService.findAuthorById(authorId)
+                () -> authorService.getAuthorById(authorId)
         );
     }
 

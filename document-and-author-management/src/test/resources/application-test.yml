@@ -1,0 +1,8 @@
+spring:
+  datasource:
+    url: "jdbc:postgresql://localhost:${POSTGRES_PORT}/test"
+    username: krieger
+    password: krieger
+  kafka:
+    producer:
+      bootstrap-servers: ${KAFKA_SERVER}

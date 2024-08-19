@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,7 +20,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 /**
- * To accept all document related web requests and delegate to service layer.
+ * To accept all document related web requests(DOCUMENT role user) and delegate to service layer.
  */
 @RestController
 @RequestMapping("api/v1/documents")
@@ -31,12 +32,13 @@ public class DocumentController {
     /**
      * Creates a new document.
      *
-     * @param request Document creation request.
-     * @return Created document with HTTP CREATED status.
+     * @param request Document save request.
+     * @return Saved document with HTTP CREATED status.
      */
     @PostMapping
+    @PreAuthorize("hasAuthority('ROLE_DOCUMENT')")
     public ResponseEntity<DocumentResponse> saveDocument(@RequestBody @Valid DocumentRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.createDocument(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.saveDocument(request));
     }
 
     /**
@@ -47,6 +49,7 @@ public class DocumentController {
      * @return Updated document with HTTP OK status.
      */
     @PutMapping("/{document-id}")
+    @PreAuthorize("hasAuthority('ROLE_DOCUMENT')")
     public ResponseEntity<DocumentResponse> updateDocument(
             @RequestBody @Valid DocumentRequest request,
             @PathVariable("document-id") Long documentId
@@ -63,6 +66,7 @@ public class DocumentController {
      * @return an AllDocumentsResponse of documents with HTTP OK status.
      */
     @GetMapping
+    @PreAuthorize("hasAuthority('ROLE_DOCUMENT')")
     public ResponseEntity<AllDocumentsResponse> getAllDocuments(
             @RequestParam(required = false) String title,
             @RequestParam(required = false) String body,
@@ -80,8 +84,9 @@ public class DocumentController {
      * @return Retrieved document with HTTP OK status.
      */
     @GetMapping("/{document-id}")
+    @PreAuthorize("hasAuthority('ROLE_DOCUMENT')")
     public ResponseEntity<DocumentResponse> getDocumentById(@PathVariable("document-id") Long documentId) {
-        return ResponseEntity.ok(service.findDocumentById(documentId));
+        return ResponseEntity.ok(service.getDocumentById(documentId));
     }
 
     /**
@@ -91,6 +96,7 @@ public class DocumentController {
      * @return HTTP NO_CONTENT status.
      */
     @DeleteMapping("/{document-id}")
+    @PreAuthorize("hasAuthority('ROLE_DOCUMENT')")
     public ResponseEntity<Void> deleteDocumentById(@PathVariable("document-id") Long documentId) {
         service.deleteDocumentById(documentId);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();

@@ -1,26 +1,36 @@
 package com.krieger.author.controller;
 
-import com.krieger.TestContainerBaseClass;
 import com.krieger.author.models.AllAuthorsResponse;
 import com.krieger.author.models.AuthorRequest;
 import com.krieger.author.models.AuthorResponse;
 import com.krieger.author.repository.AuthorRepository;
 import com.krieger.kafka.KafkaProducer;
-import org.junit.AfterClass;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
+import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.*;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.junit4.SpringRunner;
+import org.testcontainers.containers.KafkaContainer;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.utility.DockerImageName;
 
 import java.util.Collections;
 import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class AuthorControllerIT extends TestContainerBaseClass {
+@RunWith(SpringRunner.class)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles("test")
+class AuthorControllerIT {
 
     @Autowired
     private AuthorRepository repository;
@@ -30,7 +40,6 @@ class AuthorControllerIT extends TestContainerBaseClass {
 
     private String authorUrl;
 
-    @Autowired
     private TestRestTemplate testRestTemplate;
 
     @Autowired
@@ -38,8 +47,41 @@ class AuthorControllerIT extends TestContainerBaseClass {
 
     AuthorRequest authorRequest;
 
+    static PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>(DockerImageName.parse("postgres:latest"))
+            .withUsername("krieger")
+            .withPassword("krieger")
+            .withDatabaseName("test");
+
+    @Container
+    static KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:latest"))
+            .withEmbeddedZookeeper();
+
+
+    @DynamicPropertySource
+    static void registerPgProperties(DynamicPropertyRegistry registry) {
+        // PostgreSQL properties
+        registry.add("spring.datasource.url", () -> postgreSQLContainer.getJdbcUrl());
+        registry.add("spring.datasource.username", () -> postgreSQLContainer.getUsername());
+        registry.add("spring.datasource.password", () -> postgreSQLContainer.getPassword());
+
+        // Kafka properties
+        registry.add("spring.kafka.bootstrap-servers", kafka::getBootstrapServers);
+    }
+
+    @BeforeAll
+    static void beforeAll() {
+        postgreSQLContainer.start();
+        kafka.start();
+        System.setProperty("POSTGRES_PORT", postgreSQLContainer.getMappedPort(5432).toString());
+        System.setProperty("KAFKA_SERVER", kafka.getBootstrapServers());
+        System.setProperty("KAFKA_ADVERTISED_LISTENERS", kafka.getBootstrapServers());
+    }
+
     @BeforeEach
     public void setUp() {
+        testRestTemplate = new TestRestTemplate(
+                new RestTemplateBuilder().basicAuthentication("krieger-author", "krieger-author")
+        );
         authorUrl = "http://localhost:" + port + "/api/v1/authors";
         authorRequest = new AuthorRequest("Sreekanth", "G");
     }
@@ -49,10 +91,10 @@ class AuthorControllerIT extends TestContainerBaseClass {
         repository.deleteAll();
     }
 
-    @AfterClass
-    public static void stopContainer() throws InterruptedException {
-        postgresContainer.stop();
-        Thread.sleep(5000);
+    @AfterAll
+    static void afterAll() {
+        postgreSQLContainer.stop();
+        kafka.stop();
     }
 
     @Test

@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,7 +20,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 /**
- * To accept all author related web requests and delegate to service layer.
+ * To accept all author related web requests(AUTHOR role user) and delegate to service layer.
  */
 @RestController
 @RequestMapping("/api/v1/authors")
@@ -35,6 +36,7 @@ public class AuthorController {
      * @return Created author with HTTP CREATED status.
      */
     @PostMapping
+    @PreAuthorize("hasAuthority('ROLE_AUTHOR')")
     public ResponseEntity<AuthorResponse> saveAuthor(@RequestBody @Valid AuthorRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.saveAuthor(request));
     }
@@ -47,6 +49,7 @@ public class AuthorController {
      * @return Updated author with HTTP OK status.
      */
     @PutMapping("/{author-id}")
+    @PreAuthorize("hasAuthority('ROLE_AUTHOR')")
     public ResponseEntity<AuthorResponse> updateAuthor(
             @RequestBody @Valid AuthorRequest request,
             @PathVariable("author-id") Long authorId
@@ -65,6 +68,7 @@ public class AuthorController {
      * @return An AllAuthorsResponse object containing the list of authors metadata.
      */
     @GetMapping
+    @PreAuthorize("hasAuthority('ROLE_AUTHOR')")
     public ResponseEntity<AllAuthorsResponse> getAllAuthors(
             @RequestParam(required = false) String firstName,
             @RequestParam(required = false) String lastName,
@@ -82,8 +86,9 @@ public class AuthorController {
      * @return Retrieved author with HTTP OK status.
      */
     @GetMapping("/{author-id}")
+    @PreAuthorize("hasAuthority('ROLE_AUTHOR')")
     public ResponseEntity<AuthorResponse> getAuthorById(@PathVariable("author-id") Long authorId) {
-        return ResponseEntity.ok(service.findAuthorById(authorId));
+        return ResponseEntity.ok(service.getAuthorById(authorId));
     }
 
     /**
@@ -93,6 +98,7 @@ public class AuthorController {
      * @return HTTP NO_CONTENT status.
      */
     @DeleteMapping("/{author-id}")
+    @PreAuthorize("hasAuthority('ROLE_AUTHOR')")
     public ResponseEntity<Void> deleteAuthorById(@PathVariable("author-id") Long authorId) {
         service.deleteAuthorById(authorId);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
@@ -105,6 +111,7 @@ public class AuthorController {
      * @return Retrieve sent message with HTTP OK status.
      */
     @GetMapping("/{author-id}/send")
+    @PreAuthorize("hasAuthority('ROLE_AUTHOR')")
     public ResponseEntity<String> sendAuthorToKafka(@PathVariable("author-id") Long authorId) {
         return ResponseEntity.ok(service.sendAuthorToKafka(authorId));
     }

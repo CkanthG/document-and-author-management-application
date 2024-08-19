@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.data.domain.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -28,7 +29,7 @@ import static org.mockito.Mockito.*;
 class DocumentServiceTest {
 
     @InjectMocks
-    private DocumentService documentService;
+    private DocumentServiceImpl documentService;
     @Mock
     private DocumentRepository repository;
     @Mock
@@ -37,10 +38,8 @@ class DocumentServiceTest {
     private DocumentRequest documentRequest;
     private DocumentResponse documentResponse;
     private Document document;
-    private AuthorResponse authorResponse;
-    private AuthorRequest authorRequest;
     private Author author;
-    private Long documentId = 1L;
+    private final Long documentId = 1L;
     private String documentTitle = "Document";
     private String documentBody = "Document Body";
     private Long authorId = 1L;
@@ -57,13 +56,13 @@ class DocumentServiceTest {
         MockitoAnnotations.openMocks(this);
 
         // given
-        authorRequest = new AuthorRequest(firstName, lastName);
+        AuthorRequest authorRequest = new AuthorRequest(firstName, lastName);
         author = Author.builder()
                 .id(authorId)
                 .firstName(firstName)
                 .lastName(lastName)
                 .build();
-        authorResponse = new AuthorResponse(
+        AuthorResponse authorResponse = new AuthorResponse(
                 authorId,
                 firstName,
                 lastName,
@@ -100,7 +99,7 @@ class DocumentServiceTest {
         when(mapper.toDocumentResponseModel(document)).thenReturn(documentResponse);
 
         // then
-        DocumentResponse response = documentService.createDocument(documentRequest);
+        DocumentResponse response = documentService.saveDocument(documentRequest);
         assertEquals(documentRequest.title(), response.getTitle());
         assertEquals(documentRequest.body(), response.getBody());
         assertEquals(documentResponse.getId(), response.getId());
@@ -212,7 +211,7 @@ class DocumentServiceTest {
         when(mapper.toDocumentResponseModel(document)).thenReturn(documentResponse);
 
         // then
-        DocumentResponse actual = documentService.findDocumentById(documentId);
+        DocumentResponse actual = documentService.getDocumentById(documentId);
         assertEquals(documentRequest.title(), actual.getTitle());
         assertEquals(documentRequest.body(), actual.getBody());
 
@@ -227,7 +226,7 @@ class DocumentServiceTest {
     void test_find_document_by_id_should_throw_document_not_found_exception_when_invalid_document_id_passed() {
         assertThrows(
                 DocumentNotFoundException.class,
-                () -> documentService.findDocumentById(documentId)
+                () -> documentService.getDocumentById(documentId)
         );
     }
 
@@ -252,4 +251,87 @@ class DocumentServiceTest {
         );
     }
 
+    @Test
+    void test_get_document_references_should_return_list_of_referencing_documents_if_given_document_is_referenced_in_other_documents() {
+        // given
+        List<Document> documentList = new ArrayList<>();
+        documentList.add(document);
+
+        // when
+        when(repository.findDocumentsReferencing(documentId)).thenReturn(documentList);
+
+        // then
+        var references = documentService.getDocumentReferences(documentId);
+
+        assertEquals(documentList, references);
+
+        // verify
+        verify(repository, times(1))
+                .findDocumentsReferencing(documentId);
+    }
+
+    @Test
+    void test_get_document_references_should_return_empty_list_if_given_document_is_not_referenced_in_other_documents() {
+        // given
+        List<Document> documentList = new ArrayList<>();
+
+        // when
+        when(repository.findDocumentsReferencing(documentId)).thenReturn(documentList);
+
+        // then
+        var references = documentService.getDocumentReferences(documentId);
+
+        assertEquals(documentList, references);
+
+        // verify
+        verify(repository, times(1))
+                .findDocumentsReferencing(documentId);
+    }
+
+    @Test
+    void test_delete_documents_by_ids_should_delete_all_specified_documents_ids() {
+        // given
+        Set<Long> documentIds = Set.of(documentId);
+
+        // when
+        doNothing().when(repository).deleteAllByIdInBatch(documentIds);
+
+        // then
+        documentService.deleteDocumentsByIds(documentIds);
+
+        // verify
+        verify(repository, times(1))
+                .deleteAllByIdInBatch(documentIds);
+    }
+
+    @Test
+    void test_empty_references_by_ids_should_remove_all_references() {
+        // given
+        Set<Long> documentIds = Set.of(documentId);
+        var referenceDocumentId = 2L;
+        var author1 = Author.builder()
+                .id(authorId)
+                .firstName(firstName)
+                .lastName(lastName)
+                .build();
+        var referenceDoc = Document.builder()
+                .id(referenceDocumentId)
+                .title(documentTitle)
+                .body(documentBody)
+                .authors(
+                        Set.of(author1)
+                )
+                .build();
+        document.setReferences(Set.of(referenceDoc));
+        // when
+        when(repository.findById(documentId)).thenReturn(Optional.of(document));
+
+        // then
+        documentService.emptyReferencesByIds(documentIds);
+
+        verify(repository, times(1))
+                .findById(documentId);
+        verify(repository, times(1))
+                .save(document);
+    }
 }

@@ -7,6 +7,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.kafka.config.TopicBuilder;
 
+import java.util.Objects;
+
 @Configuration
 @RequiredArgsConstructor
 public class KafkaTemplateConfig {
@@ -16,7 +18,7 @@ public class KafkaTemplateConfig {
     @Bean
     public NewTopic newTopic() {
         return TopicBuilder
-                .name(environment.getProperty("kafka.topic"))
+                .name(Objects.requireNonNull(environment.getProperty("kafka.topic")))
                 .build();
     }
 

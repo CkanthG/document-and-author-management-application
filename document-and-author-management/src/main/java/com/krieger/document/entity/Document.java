@@ -10,6 +10,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.FetchType;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.Builder;
@@ -51,7 +52,7 @@ public class Document {
     )
     private Set<Author> authors = new HashSet<>();
 
-    @ManyToMany // Specifies a many-to-many relationship between documents and their references.
+    @ManyToMany(fetch = FetchType.EAGER) // Specifies a many-to-many relationship between documents and their references.
     @JoinTable(
             name = "document_references",
             joinColumns = @JoinColumn(name = "document_id"),
