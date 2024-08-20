@@ -2,6 +2,7 @@ package com.krieger.document.service;
 
 import com.krieger.author.models.CustomPageable;
 import com.krieger.author.models.CustomSort;
+import com.krieger.author.service.AuthorService;
 import com.krieger.document.entity.Document;
 import com.krieger.document.exception.DocumentNotFoundException;
 import com.krieger.document.mapper.DocumentMapper;
@@ -9,13 +10,16 @@ import com.krieger.document.models.DocumentRequest;
 import com.krieger.document.models.DocumentResponse;
 import com.krieger.document.models.AllDocumentsResponse;
 import com.krieger.document.repository.DocumentRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -27,10 +31,12 @@ import static java.lang.String.format;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DocumentServiceImpl implements DocumentService {
 
     private final DocumentRepository repository;
     private final DocumentMapper mapper;
+    private final AuthorService authorService;
 
     /**
      * Creates a new document and returns its response representation.
@@ -161,7 +167,10 @@ public class DocumentServiceImpl implements DocumentService {
      * @param documentId ID of the document to delete.
      */
     public void deleteDocumentById(Long documentId) {
-        findDocumentByDocumentId(documentId, "No document found with specified ID : %s to delete.");
+        var document = getDocumentById(documentId);
+        // Collect all document IDs to empty references
+        Set<Long> documentIdsToUpdate = new HashSet<>();
+        collectDocumentReferencesToEmpty(Set.of(document), documentIdsToUpdate);
         repository.deleteById(documentId);
     }
 
@@ -197,6 +206,82 @@ public class DocumentServiceImpl implements DocumentService {
 
             // Save the updated document back to the repository
             repository.save(document);
+        }
+    }
+
+
+    /**
+     * To collect all documents IDs, including their references.
+     *
+     * @param documentId to identify the documents.
+     * @param documentIdsToDelete to store all document IDs.
+     */
+    private void collectDocumentReferences(Long documentId, Set<Long> documentIdsToDelete) {
+        // Avoid redundant lookups.
+        if (!documentIdsToDelete.add(documentId)) {
+            return; // If the documentId was already added skips here.
+        }
+
+        // Recursively collect document references.
+        List<Document> references = getDocumentReferences(documentId);
+        references.forEach(
+                refDoc ->
+                        // recursive call to identify reference documents.
+                        collectDocumentReferences(
+                                refDoc.getId(),
+                                documentIdsToDelete
+                        )
+        );
+    }
+
+    /**
+     * To delete author, its documents and update the references accordingly.
+     *
+     * @param authorId to identify documents and references.
+     */
+    @Override
+    @Transactional
+    public void updateDocumentReferencesAndDeleteAuthor(Long authorId) {
+        try {
+            // Get the author response and written documents.
+            var authorResponse = authorService.getAuthorById(authorId);
+
+            // Collect all document IDs to empty references
+            Set<Long> documentIdsToUpdate = new HashSet<>();
+            var documents = authorResponse.getDocuments();
+            collectDocumentReferencesToEmpty(documents, documentIdsToUpdate);
+
+            // Finally, delete the author if required
+            authorService.deleteAuthorById(authorId);
+
+            log.info("Successfully removed documents and its references for the author with ID {}.", authorId);
+        } catch (Exception ex) {
+            log.error("Exception occurred while updating the author with ID {} and its document references. " +
+                    "Rolling back. Error: {}", authorId, ex.getMessage());
+            // Re-throw the exception to trigger rollback, in case of failures.
+            throw ex;
+        }
+    }
+
+    /**
+     * To collect all documents to empty references.
+     *
+     * @param documents to identify the references.
+     * @param documentIdsToUpdate to store all document reference IDs.
+     */
+    private void collectDocumentReferencesToEmpty(Set<DocumentResponse> documents, Set<Long> documentIdsToUpdate) {
+        if (documents != null) {
+            documents.forEach(
+                    document ->
+                            // Collect all documents and their references.
+                            collectDocumentReferences(
+                                    document.getId(),
+                                    documentIdsToUpdate
+                            )
+            );
+
+            // Empty all references for the collected documents
+            emptyReferencesByIds(documentIdsToUpdate);
         }
     }
 

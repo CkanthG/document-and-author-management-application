@@ -3,6 +3,7 @@ package com.krieger.document.service;
 import com.krieger.author.entity.Author;
 import com.krieger.author.models.AuthorRequest;
 import com.krieger.author.models.AuthorResponse;
+import com.krieger.author.service.AuthorService;
 import com.krieger.document.entity.Document;
 import com.krieger.document.exception.DocumentNotFoundException;
 import com.krieger.document.mapper.DocumentMapper;
@@ -34,6 +35,8 @@ class DocumentServiceTest {
     private DocumentRepository repository;
     @Mock
     private DocumentMapper mapper;
+    @Mock
+    private AuthorService authorService;
 
     private DocumentRequest documentRequest;
     private DocumentResponse documentResponse;
@@ -50,6 +53,9 @@ class DocumentServiceTest {
     private int offSet = 0;
     private String[] sort = {"id" , "asc"};
     private Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(Sort.Direction.ASC, "id"));
+    private Document referenceDoc;
+    private AuthorResponse authorResponse;
+    private DocumentResponse referenceDocument;
 
     @BeforeEach
     void setUp() {
@@ -62,7 +68,7 @@ class DocumentServiceTest {
                 .firstName(firstName)
                 .lastName(lastName)
                 .build();
-        AuthorResponse authorResponse = new AuthorResponse(
+        authorResponse = new AuthorResponse(
                 authorId,
                 firstName,
                 lastName,
@@ -84,6 +90,29 @@ class DocumentServiceTest {
                 .build();
         documentResponse = new DocumentResponse(
                 documentId,
+                documentTitle,
+                documentBody,
+                Set.of(authorResponse),
+                null
+        );
+
+
+        var referenceDocumentId = 2L;
+        var author1 = Author.builder()
+                .id(authorId)
+                .firstName(firstName)
+                .lastName(lastName)
+                .build();
+        referenceDoc = Document.builder()
+                .id(referenceDocumentId)
+                .title(documentTitle)
+                .body(documentBody)
+                .authors(
+                        Set.of(author1)
+                )
+                .build();
+        referenceDocument = new DocumentResponse(
+                referenceDocumentId,
                 documentTitle,
                 documentBody,
                 Set.of(authorResponse),
@@ -234,13 +263,18 @@ class DocumentServiceTest {
     void test_delete_document_by_id_should_successfully_delete_the_document() {
         // when
         when(repository.findById(documentId)).thenReturn(Optional.of(document));
+        when(mapper.toDocumentResponseModel(document)).thenReturn(documentResponse);
+        when(repository.save(document)).thenReturn(document);
+        document.setReferences(Set.of(referenceDoc));
 
         // then
         documentService.deleteDocumentById(documentId);
 
         //verify
-        verify(repository, times(1))
+        verify(repository, times(2))
                 .findById(authorId);
+        verify(repository, times(1))
+                .save(document);
     }
 
     @Test
@@ -308,20 +342,7 @@ class DocumentServiceTest {
     void test_empty_references_by_ids_should_remove_all_references() {
         // given
         Set<Long> documentIds = Set.of(documentId);
-        var referenceDocumentId = 2L;
-        var author1 = Author.builder()
-                .id(authorId)
-                .firstName(firstName)
-                .lastName(lastName)
-                .build();
-        var referenceDoc = Document.builder()
-                .id(referenceDocumentId)
-                .title(documentTitle)
-                .body(documentBody)
-                .authors(
-                        Set.of(author1)
-                )
-                .build();
+
         document.setReferences(Set.of(referenceDoc));
         // when
         when(repository.findById(documentId)).thenReturn(Optional.of(document));
@@ -333,5 +354,36 @@ class DocumentServiceTest {
                 .findById(documentId);
         verify(repository, times(1))
                 .save(document);
+    }
+
+    @Test
+    void test_update_document_references_and_delete_author_should_update_documents_and_delete_author() {
+        // when
+        when(authorService.getAuthorById(authorId)).thenReturn(authorResponse);
+        doNothing().when(authorService).deleteAuthorById(authorId);
+
+        // then
+        documentService.updateDocumentReferencesAndDeleteAuthor(authorId);
+
+        // verify
+        verify(authorService, times(1))
+                .getAuthorById(authorId);
+        verify(authorService, times(1))
+                .deleteAuthorById(authorId);
+    }
+
+    @Test
+    void test_update_document_references_and_delete_author_should_role_back_in_failed_case() {
+        // given
+        documentResponse.setReferences(Set.of(referenceDocument));
+        authorResponse.setDocuments(Set.of(documentResponse));
+        // when
+        when(authorService.getAuthorById(authorId)).thenReturn(authorResponse);
+        doNothing().when(authorService).deleteAuthorById(authorId);
+
+        assertThrows(
+                Exception.class,
+                () -> documentService.updateDocumentReferencesAndDeleteAuthor(authorId)
+        );
     }
 }

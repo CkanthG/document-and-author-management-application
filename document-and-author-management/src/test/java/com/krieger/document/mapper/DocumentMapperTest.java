@@ -102,4 +102,32 @@ class DocumentMapperTest {
         assertEquals(expected.getBody(), actual.getBody());
         assertEquals(expected.getAuthors().size(), actual.getAuthors().size());
     }
+
+    @Test
+    void test_should_map_Reference_To_DocumentResponse() {
+        // given
+        Document expected = new Document(
+                documentId,
+                documentTitle,
+                documentBody,
+                null,
+                null
+        );
+        // then
+        DocumentResponse actual = mapper.mapReferenceToDocumentResponse(expected);
+        assertEquals(expected.getId(), actual.getId());
+        assertEquals(expected.getTitle(), actual.getTitle());
+        assertEquals(expected.getBody(), actual.getBody());
+    }
+
+    @Test
+    void test_should_map_To_ReferenceEntity() {
+        // given
+        var referenceId = 1L;
+        var mapDocumentId = 2L;
+        // then
+        Document actual = mapper.mapToReferenceEntity(referenceId, mapDocumentId);
+
+        assertEquals(referenceId, actual.getId());
+    }
 }

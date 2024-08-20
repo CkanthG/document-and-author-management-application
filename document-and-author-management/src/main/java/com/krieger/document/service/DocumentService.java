@@ -28,4 +28,6 @@ public interface DocumentService {
     List<Document> getDocumentReferences(Long documentId);
 
     void emptyReferencesByIds(Set<Long> documentIdsToUpdate);
+
+    void updateDocumentReferencesAndDeleteAuthor(Long authorId);
 }

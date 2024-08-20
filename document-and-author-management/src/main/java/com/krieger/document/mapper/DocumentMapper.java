@@ -25,9 +25,7 @@ public class DocumentMapper {
      * @param request The DocumentRequest object containing the data for the document.
      * @param documentId The ID of the current document, used to prevent self-referencing.
      * @return A Document entity populated with data from the request.
-     * @throws AuthorNotFoundException If an author ID is 0, indicating an invalid author.
-     * @throws DocumentNotFoundException If a reference ID is 0, indicating an invalid document reference.
-     * @throws DocumentReferenceException If the document references itself.
+     * @throws DocumentRequestException If a document object is null.
      */
     public Document toDocumentEntity(DocumentRequest request, Long documentId) {
         if (request == null) {
@@ -130,7 +128,7 @@ public class DocumentMapper {
      * @param reference The referenced Document entity to convert.
      * @return A simplified DocumentResponse model with only ID, title, and body.
      */
-    private DocumentResponse mapReferenceToDocumentResponse(Document reference) {
+    public DocumentResponse mapReferenceToDocumentResponse(Document reference) {
         return DocumentResponse.builder()
                 .id(reference.getId())
                 .title(reference.getTitle())
